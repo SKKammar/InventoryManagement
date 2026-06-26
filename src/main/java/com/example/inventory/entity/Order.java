@@ -1,7 +1,9 @@
 package com.example.inventory.entity;
 
+import com.example.inventory.enums.OrderStatus;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -11,67 +13,45 @@ import java.util.List;
 @Table(name = "orders")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Order {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 50)
-    private String orderNumber;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @Column(name = "order_date")
-    private LocalDateTime orderDate;
-
-    @Column(name = "total_amount", precision = 12, scale = 2)
-    private BigDecimal totalAmount;
-
-    @Column(length = 50)
     @Enumerated(EnumType.STRING)
-    private OrderStatus status;
+    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
+    private OrderStatus status = OrderStatus.PENDING;
 
-    @Column(name = "payment_status", length = 50)
-    @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    @Column(name = "total_amount", nullable = false)
+    private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @Column(name = "shipping_address", length = 255)
-    private String shippingAddress;
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<OrderItem> items = new ArrayList<>();
 
-    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
-    @Builder.Default
-    private List<OrderItem> orderItems = new ArrayList<>();
-
     @PrePersist
-    protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-        orderDate = LocalDateTime.now();
-        if (status == null) status = OrderStatus.PENDING;
-        if (paymentStatus == null) paymentStatus = PaymentStatus.UNPAID;
-    }
-
+    protected void onCreate() { createdAt = LocalDateTime.now(); updatedAt = LocalDateTime.now(); }
     @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+    protected void onUpdate() { updatedAt = LocalDateTime.now(); }
+
+    // Safe status transition
+    public void setStatusSafely(OrderStatus newStatus) {
+        if (!this.status.canTransitionTo(newStatus)) {
+            throw new IllegalStateException(
+                    String.format("Cannot transition order %d from %s to %s", this.id, this.status, newStatus)
+            );
+        }
+        this.status = newStatus;
     }
 
-    public enum OrderStatus {
-        PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED
-    }
-
-    public enum PaymentStatus {
-        UNPAID, PAID, REFUNDED
+    public void addItem(OrderItem item) {
+        items.add(item);
+        item.setOrder(this);
+        this.totalAmount = this.totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
     }
 }

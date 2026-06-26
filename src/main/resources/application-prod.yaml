@@ -1,31 +1,33 @@
 spring:
   jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-
+    show-sql: false  # Turn off SQL logging in production for performance
+    properties:
+      hibernate:
+        format_sql: false
   datasource:
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&serverTimezone=UTC
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    # These MUST be set as environment variables on your production server
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
 
-server:
-  port: 8080
-  servlet:
-    session:
-      cookie:
-        secure: true
-        http-only: true
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration: 3600000
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET}  # Must be set - no fallback for security
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}  # 24 hours
+    refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}  # 7 days
 
 logging:
   level:
     root: WARN
-    com.inventory: INFO
-  file:
-    name: /var/log/inventory/application.log
-    max-size: 10MB
-    max-history: 30
+    com.example.inventory: INFO
+    org.springframework.security: WARN
+    org.hibernate: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env  # Expose only safe endpoints
+  endpoint:
+    health:
+      show-details: always

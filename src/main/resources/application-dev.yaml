@@ -1,29 +1,23 @@
 spring:
   jpa:
-    hibernate:
-      ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
-
   datasource:
-    url: jdbc:mysql://localhost:3306/inventory_db_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: root
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/inventory_db_dev?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:Santosh}
 
-server:
-  port: 8080
-
-jwt:
-  secret: dev-super-secret-key-at-least-32-characters-long-for-hs512
-  expiration: 7200000  # 2 hours
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:dev-super-secret-key-at-least-32-characters-long-for-hs512}
+    expiration-ms: ${APP_JWT_EXPIRATION_MS:7200000}
 
 logging:
   level:
     root: INFO
-    com.inventory: DEBUG
+    com.example.inventory: DEBUG
     org.springframework.security: DEBUG
     org.springframework.web: DEBUG
     org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
