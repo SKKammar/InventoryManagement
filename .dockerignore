@@ -1,0 +1,12 @@
+target/
+*.class
+*.log
+.git
+.gitignore
+.idea
+*.iml
+*.iws
+*.ipr
+.DS_Store
+*.md
+!README.md

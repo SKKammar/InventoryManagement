@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+
+  # ── PostgreSQL Database ──────────────────────────────────────────────────
+  postgres:
+    image: postgres:15
+    container_name: inventory-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: inventory_user
+      POSTGRES_PASSWORD: inventory_pass
+      POSTGRES_DB: inventory_db
+    ports:
+      - "5433:5432"       # 5433 on host so it doesn't clash with local Postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data    # data persists across restarts
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U inventory_user -d inventory_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Spring Boot App ──────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: inventory-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # Override application.yaml values with Docker environment variables
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/inventory_db
+      SPRING_DATASOURCE_USERNAME: inventory_user
+      SPRING_DATASOURCE_PASSWORD: inventory_pass
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      APP_JWT_EXPIRATION_MS: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy    # wait for Postgres to be ready before starting app
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/v3/api-docs || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+    driver: local
