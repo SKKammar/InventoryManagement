@@ -144,6 +144,36 @@ curl -X POST http://localhost:8080/api/products \
   }'
 ```
 
+## Security Notes
+
+### Authentication Architecture
+JWT tokens are stored in **httpOnly, SameSite=Lax cookies** — not in localStorage.
+
+| Property | Value | Why |
+|----------|-------|-----|
+| `httpOnly` | `true` | Prevents JavaScript access → mitigates XSS token theft |
+| `SameSite` | `Lax` | Browser won't send cookie on cross-origin POST → first CSRF defense layer |
+| `Secure` | `true` (prod) | Requires HTTPS → prevents token interception over HTTP |
+
+### CSRF Protection
+**Strategy: CSRF token validation (defense-in-depth)**
+
+The backend uses Spring Security's `CookieCsrfTokenRepository` which:
+1. Sets a non-httpOnly `XSRF-TOKEN` cookie on every response
+2. The frontend reads this cookie and sends its value as the `X-XSRF-TOKEN` header
+3. Spring validates that the header matches the cookie
+4. Attackers on different origins can't read our cookies (same-origin policy) → can't forge the header
+
+**Why not SameSite=Lax alone?** SameSite=Lax blocks cross-origin form POST but doesn't cover all attack vectors (subdomain attacks, browser quirks). CSRF tokens provide a second independent layer of protection.
+
+**CSRF-exempt endpoints**: `/api/auth/login`, `/api/auth/register` (no session to hijack at login time).
+
+### Bearer Header Fallback
+The JWT filter supports `Authorization: Bearer` headers **only in dev/test profiles** for Postman and Swagger convenience. This is **disabled in production** (`app.auth.allow-bearer-header: false`) to prevent bypassing cookie-based CSRF protections.
+
+### CORS
+Configured with `allowCredentials: true` and explicit origin whitelist. Wildcard origins are not allowed when credentials are enabled (browser security requirement).
+
 ## Author
 **Santosh K Kammar**
 - GitHub: [@SKKammar](https://github.com/SKKammar)

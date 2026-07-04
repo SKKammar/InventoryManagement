@@ -1,58 +1,50 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import api from '../api/axios';
+import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const token = localStorage.getItem('accessToken');
-        const role = localStorage.getItem('role');
-        if (token && role) {
-            setUser({ role });
-        }
-        setLoading(false);
-    }, []);
+  axios.defaults.baseURL = 'http://localhost:8080';
+  axios.defaults.withCredentials = true;
 
-    const login = async (username, password) => {
-        try {
-            const response = await api.post('/auth/login', { username, password });
-            const { accessToken, refreshToken, role } = response.data;
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-            localStorage.setItem('role', role);
-            setUser({ role });
-            return { success: true };
-        } catch (error) {
-            return { success: false, message: error.response?.data?.message || 'Login failed' };
-        }
-    };
+  useEffect(() => {
+    checkAuth();
+  }, []);
 
-    const register = async (username, email, password) => {
-        try {
-            await api.post('/auth/register', { username, email, password });
-            return await login(username, password);
-        } catch (error) {
-            return { success: false, message: error.response?.data?.message || 'Registration failed' };
-        }
-    };
+  const checkAuth = async () => {
+    try {
+      const { data } = await axios.get('/api/auth/me');
+      setUser(data);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const logout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('role');
-        setUser(null);
-    };
+  const login = async (username, password) => {
+    const { data } = await axios.post('/api/auth/login', { username, password });
+    setUser(data);
+  };
 
-    const isAdmin = () => user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_STAFF';
+  const logout = async () => {
+    await axios.post('/api/auth/logout');
+    setUser(null);
+  };
 
-    return (
-        <AuthContext.Provider value={{ user, login, register, logout, isAdmin, loading }}>
-            {children}
-        </AuthContext.Provider>
-    );
+  const register = async (username, email, password) => {
+    const { data } = await axios.post('/api/auth/register', { username, email, password });
+    setUser(data);
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout, register, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

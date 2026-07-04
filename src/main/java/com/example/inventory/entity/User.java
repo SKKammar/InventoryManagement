@@ -4,6 +4,7 @@ import com.example.inventory.enums.RoleType;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -25,11 +26,20 @@ public class User {
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
+    @Column(nullable = false, length = 20)
     private RoleType role = RoleType.CUSTOMER;
 
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    @Column(length = 100)
+    private String resetToken;
+
+    @Column
+    private LocalDateTime resetTokenExpiry;
 
     @PrePersist
     protected void onCreate() {

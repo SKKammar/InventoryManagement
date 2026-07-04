@@ -1,3 +1,129 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+@layer base {
+  :root {
+    /* Abyssal Space / Deep Sea Palette */
+    --bg-color: #03040c; /* Super dark navy */
+    --text-main: #00ffcc; /* Bioluminescent cyan */
+    --accent-1: #ff00ff; /* Neon magenta */
+    --accent-2: #ffea00; /* Toxic yellow */
+    --accent-3: #39ff14; /* Hacker green */
+    --border-color: #00ffcc;
+  }
+
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: 'Space Mono', monospace;
+    background-image: 
+      radial-gradient(circle at 10% 20%, rgba(0, 255, 204, 0.05) 1px, transparent 1px),
+      radial-gradient(circle at 90% 80%, rgba(255, 0, 255, 0.05) 1px, transparent 1px);
+    background-size: 50px 50px;
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  /* Glitchy selection */
+  ::selection {
+    background: var(--accent-1);
+    color: #fff;
+  }
+
+  * {
+    border-color: var(--border-color);
+  }
+}
+
+@layer components {
+  .retro-card {
+    @apply bg-[#060b19] border-[3px] border-[#00ffcc] p-6 relative;
+    box-shadow: 8px 8px 0px 0px #ff00ff;
+    transition: all 0.2s ease;
+  }
+  
+  .retro-card:hover {
+    box-shadow: 12px 12px 0px 0px #ffea00;
+    transform: translate(-4px, -4px);
+  }
+
+  .retro-btn {
+    @apply bg-[#060b19] text-[#00ffcc] border-[3px] border-[#00ffcc] px-6 py-3 font-bold uppercase tracking-widest cursor-pointer relative overflow-hidden;
+    box-shadow: 4px 4px 0px 0px #00ffcc;
+    transition: all 0.1s ease;
+  }
+
+  .retro-btn:hover {
+    @apply bg-[#00ffcc] text-[#03040c];
+    box-shadow: 6px 6px 0px 0px #ff00ff;
+    transform: translate(-2px, -2px);
+  }
+
+  .retro-btn:active {
+    box-shadow: 0px 0px 0px 0px #00ffcc;
+    transform: translate(4px, 4px);
+  }
+
+  .retro-btn-danger {
+    @apply bg-[#060b19] text-[#ff00ff] border-[3px] border-[#ff00ff] px-4 py-2 font-bold uppercase;
+    box-shadow: 4px 4px 0px 0px #ff00ff;
+  }
+  .retro-btn-danger:hover {
+    @apply bg-[#ff00ff] text-[#03040c];
+    box-shadow: 6px 6px 0px 0px #ffea00;
+    transform: translate(-2px, -2px);
+  }
+
+  .retro-input {
+    @apply bg-transparent border-[3px] border-[#00ffcc] text-[#00ffcc] p-3 w-full outline-none font-mono placeholder:text-[#00ffcc]/30;
+    box-shadow: 4px 4px 0px 0px rgba(0,255,204,0.2);
+  }
+
+  .retro-input:focus {
+    @apply border-[#ff00ff];
+    box-shadow: 4px 4px 0px 0px #ff00ff;
+  }
+
+  .retro-table-container {
+    @apply border-[3px] border-[#00ffcc] bg-[#060b19] overflow-x-auto;
+    box-shadow: 8px 8px 0px 0px #00ffcc;
+  }
+
+  .retro-table th {
+    @apply border-b-[3px] border-[#00ffcc] p-4 text-left font-bold uppercase text-[#ffea00];
+  }
+  
+  .retro-table td {
+    @apply border-b border-[#00ffcc]/30 p-4 font-mono;
+  }
+
+  .retro-table tr:hover td {
+    @apply bg-[#00ffcc]/10;
+  }
+}
+
+/* Animations */
+@keyframes crt-flicker {
+  0% { opacity: 0.95; }
+  5% { opacity: 0.85; }
+  10% { opacity: 0.95; }
+  15% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+.crt-effect::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  z-index: 2;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}

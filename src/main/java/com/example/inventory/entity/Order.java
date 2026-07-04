@@ -18,40 +18,44 @@ public class Order {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "VARCHAR(20)")
+    @Column(nullable = false, length = 20)
     private OrderStatus status = OrderStatus.PENDING;
 
-    @Column(name = "total_amount", nullable = false)
+    @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal totalAmount = BigDecimal.ZERO;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items = new ArrayList<>();
 
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
     @PrePersist
-    protected void onCreate() { createdAt = LocalDateTime.now(); updatedAt = LocalDateTime.now(); }
+    protected void onCreate() { 
+        createdAt = LocalDateTime.now(); 
+        updatedAt = LocalDateTime.now(); 
+    }
+    
     @PreUpdate
-    protected void onUpdate() { updatedAt = LocalDateTime.now(); }
-
-    // Safe status transition
-    public void setStatusSafely(OrderStatus newStatus) {
-        if (!this.status.canTransitionTo(newStatus)) {
-            throw new IllegalStateException(
-                    String.format("Cannot transition order %d from %s to %s", this.id, this.status, newStatus)
-            );
-        }
-        this.status = newStatus;
+    protected void onUpdate() { 
+        updatedAt = LocalDateTime.now(); 
     }
 
     public void addItem(OrderItem item) {
         items.add(item);
         item.setOrder(this);
-        this.totalAmount = this.totalAmount.add(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
+    }
+
+    public void removeItem(OrderItem item) {
+        items.remove(item);
+        item.setOrder(null);
     }
 }

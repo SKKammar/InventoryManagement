@@ -2,44 +2,30 @@ server:
   port: 8080
 
 spring:
-  profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+  application:
+    name: inventory-api
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://db.dgufnkbmwaxtjtpdvvcn.supabase.co:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: 7975433262#santu
+  
   jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate  # Safe for prod, Flyway handles schema
+      ddl-auto: update
+    show-sql: true
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.MySQLDialect
-  jackson:
-    serialization:
-      write-dates-as-timestamps: false
+        format_sql: true
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET}
-    expiration-ms: ${APP_JWT_EXPIRATION_MS:86400000}
-    refresh-expiration-ms: ${APP_JWT_REFRESH_EXPIRATION_MS:604800000}
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-    disable-swagger-default-url: true
-  packages-to-scan: com.example.inventory.controller
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
+    secret: "super-secret-key-at-least-32-characters-long-for-hs512"
+    expiration-ms: 86400000 # 24 hours
 
 logging:
   level:
-    com.example.inventory: INFO
-    org.springframework.security: INFO
+    org.springframework.security: DEBUG
+    com.example.inventory: DEBUG

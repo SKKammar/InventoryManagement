@@ -1,25 +1,39 @@
-import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'sonner';
-import { Terminal, Lock, User } from 'lucide-react';
+import { Terminal, Lock, Key } from 'lucide-react';
 
-export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function ResetPassword() {
+  const [token, setToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tokenParam = params.get('token');
+    if (tokenParam) {
+      setToken(tokenParam);
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+    
     setLoading(true);
     try {
-      await login(username, password);
-      toast.success('Login successful');
-      navigate('/');
+      await axios.post('/api/auth/reset-password', { token, newPassword });
+      toast.success('Password reset successfully');
+      navigate('/login');
     } catch (err) {
-      toast.error('Invalid credentials');
+      toast.error(err.response?.data || 'Reset failed');
     } finally {
       setLoading(false);
     }
@@ -38,28 +52,28 @@ export default function Login() {
               <Terminal size={40} />
             </div>
             <h2 className="text-3xl font-bold text-[#ffea00] mb-2 uppercase tracking-widest text-center">
-              GreatOne LOGIN
+              RESET PASSWORD
             </h2>
             <p className="text-[#00ffcc] text-center text-xs uppercase opacity-80">
-              Authorized personnel only. <br/> All connections are logged.
+              Enter your new password below.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-bold text-[#39ff14] uppercase tracking-wider block">
-                &gt; USERNAME
+                &gt; RESET TOKEN
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User size={18} className="text-[#00ffcc]" />
+                  <Key size={18} className="text-[#00ffcc]" />
                 </div>
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
                   className="retro-input pl-10"
-                  placeholder="Enter your username"
+                  placeholder="Paste token if not auto-filled"
                   required
                 />
               </div>
@@ -67,7 +81,7 @@ export default function Login() {
 
             <div className="space-y-2">
               <label className="text-xs font-bold text-[#39ff14] uppercase tracking-wider block">
-                &gt; PASSWORD
+                &gt; NEW PASSWORD
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -75,8 +89,27 @@ export default function Login() {
                 </div>
                 <input
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="retro-input pl-10"
+                  placeholder="********"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-[#39ff14] uppercase tracking-wider block">
+                &gt; CONFIRM NEW PASSWORD
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock size={18} className="text-[#00ffcc]" />
+                </div>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   className="retro-input pl-10"
                   placeholder="********"
                   required
@@ -89,15 +122,12 @@ export default function Login() {
               disabled={loading}
               className="retro-btn w-full mt-8"
             >
-              {loading ? 'AUTHENTICATING...' : 'LOGIN'}
+              {loading ? 'RESETTING...' : 'RESET PASSWORD'}
             </button>
             
-            <div className="flex justify-between mt-4 text-xs tracking-wider uppercase">
-              <Link to="/forgot-password" className="text-[#00ffcc] hover:text-[#ffea00]">
-                FORGOT PASSWORD?
-              </Link>
-              <Link to="/register" className="text-[#00ffcc] hover:text-[#ffea00]">
-                CREATE ACCOUNT
+            <div className="text-center mt-4">
+              <Link to="/login" className="text-[#00ffcc] hover:text-[#ffea00] text-sm uppercase tracking-wider">
+                &lt; BACK TO LOGIN
               </Link>
             </div>
           </form>

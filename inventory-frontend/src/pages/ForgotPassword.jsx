@@ -1,25 +1,22 @@
 import { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { toast } from 'sonner';
-import { Terminal, Lock, User } from 'lucide-react';
+import { Terminal, Mail } from 'lucide-react';
 
-export default function Login() {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+export default function ForgotPassword() {
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(username, password);
-      toast.success('Login successful');
-      navigate('/');
+      const response = await axios.post('/api/auth/forgot-password', { email });
+      toast.success(response.data || 'Reset link sent');
     } catch (err) {
-      toast.error('Invalid credentials');
+      toast.error(err.response?.data || 'Request failed');
     } finally {
       setLoading(false);
     }
@@ -38,47 +35,28 @@ export default function Login() {
               <Terminal size={40} />
             </div>
             <h2 className="text-3xl font-bold text-[#ffea00] mb-2 uppercase tracking-widest text-center">
-              GreatOne LOGIN
+              FORGOT PASSWORD
             </h2>
             <p className="text-[#00ffcc] text-center text-xs uppercase opacity-80">
-              Authorized personnel only. <br/> All connections are logged.
+              Enter your email to receive a reset link.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <label className="text-xs font-bold text-[#39ff14] uppercase tracking-wider block">
-                &gt; USERNAME
+                &gt; EMAIL ADDRESS
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User size={18} className="text-[#00ffcc]" />
+                  <Mail size={18} className="text-[#00ffcc]" />
                 </div>
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="retro-input pl-10"
-                  placeholder="Enter your username"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-[#39ff14] uppercase tracking-wider block">
-                &gt; PASSWORD
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock size={18} className="text-[#00ffcc]" />
-                </div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="retro-input pl-10"
-                  placeholder="********"
+                  placeholder="you@example.com"
                   required
                 />
               </div>
@@ -89,15 +67,12 @@ export default function Login() {
               disabled={loading}
               className="retro-btn w-full mt-8"
             >
-              {loading ? 'AUTHENTICATING...' : 'LOGIN'}
+              {loading ? 'SENDING...' : 'SEND RESET LINK'}
             </button>
             
-            <div className="flex justify-between mt-4 text-xs tracking-wider uppercase">
-              <Link to="/forgot-password" className="text-[#00ffcc] hover:text-[#ffea00]">
-                FORGOT PASSWORD?
-              </Link>
-              <Link to="/register" className="text-[#00ffcc] hover:text-[#ffea00]">
-                CREATE ACCOUNT
+            <div className="text-center mt-4">
+              <Link to="/login" className="text-[#00ffcc] hover:text-[#ffea00] text-sm uppercase tracking-wider">
+                &lt; BACK TO LOGIN
               </Link>
             </div>
           </form>
