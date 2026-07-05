@@ -1,155 +1,119 @@
-# Inventory & Order Management System
+# 📦 Full-Stack Inventory Management System
 
-A REST API backend for managing inventory and orders, built with Java 17 and Spring Boot 3.2.
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-F2F4F9?style=for-the-badge&logo=spring-boot)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Render](https://img.shields.io/badge/Render-%46E3B7.svg?style=for-the-badge&logo=render&logoColor=white)
 
-![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
-![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen?style=flat-square&logo=springboot)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?style=flat-square&logo=postgresql)
-![JWT](https://img.shields.io/badge/JWT-Auth-red?style=flat-square)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+A secure, high-performance inventory tracking and management system. Built with a decoupled architecture featuring a Spring Boot REST API, a responsive React frontend, and a cloud-native PostgreSQL database via Supabase.
 
-## Performance
-> Load tested with Postman — **9,025 requests** handled with **zero errors**
+## 🚀 Live Demo
 
-| Metric | Result |
-|---|---|
-| Requests/second | 126 req/sec |
-| Avg response time | 70ms |
-| P90 | 180ms |
-| P99 | 510ms |
-| Error rate | 0.00% |
+**Experience the application live:** [https://inventory-frontend-mdvc.onrender.com](https://inventory-frontend-mdvc.onrender.com)
 
-## Features
+> **Test Credentials:**
+> * **Admin:** `admin` / `admin123`
+> * **User:** `user` / `user123`
 
-- **JWT Cookie Authentication** — httpOnly cookie-based auth with access + refresh tokens (login, register, logout, session check, forgot-password, reset-password)
-- **Role-Based Access Control** — Three roles: `ADMIN`, `CUSTOMER`, `WAREHOUSE_STAFF`
-- **Product Management** — Full CRUD with soft-delete; writes restricted to ADMIN
-- **Order Management** — Order creation (any authenticated user), all-orders listing (ADMIN / WAREHOUSE_STAFF), own-orders listing (any authenticated user)
-- **Swagger UI** — Interactive API docs at `/swagger-ui.html`
-- **Global Exception Handling** — Consistent JSON error responses via `@RestControllerAdvice`
+---
 
-## Tech Stack
+## ✨ Key Features
 
-| Layer | Technology |
-|---|---|
-| Language | Java 17 |
-| Framework | Spring Boot 3.2.0 |
-| Database | PostgreSQL |
-| ORM | Hibernate / Spring Data JPA |
-| Security | Spring Security 6 + JWT (JJWT 0.12.3) |
-| Documentation | Springdoc OpenAPI 2.3.0 (Swagger) |
-| Mapping | MapStruct 1.5.5.Final |
-| Build | Maven |
+* **Secure Authentication:** Implementation of industry-standard JWT (JSON Web Tokens) with cross-origin `httpOnly`, `Secure`, and `SameSite=None` cookie management.
+* **Role-Based Access Control (RBAC):** Distinct permissions for Admin and Standard User accounts.
+* **Silent Token Refresh:** Automated background token regeneration via Axios interceptors for a seamless user experience.
+* **Inventory Tracking:** Real-time visibility into products, stock levels, and active orders.
+* **Cloud-Native Database:** Optimized for serverless and pooled database connections using Supavisor (SNI enabled).
+* **Responsive UI:** Clean, modern interface built with Tailwind CSS and Vite.
 
-## Quick Start
+---
 
-### Prerequisites
-- Java 17
-- Maven 3.9+
-- PostgreSQL instance (local or remote, e.g. Supabase)
+## 🛠️ Technology Stack
 
-### Setup
+### **Frontend**
+* **Framework:** React.js
+* **Build Tool:** Vite
+* **Styling:** Tailwind CSS
+* **Networking:** Axios
+* **State Management:** React Context API
+* **Hosting:** Render (Static Site)
+
+### **Backend**
+* **Core:** Java 17, Spring Boot 3.2.0
+* **Security:** Spring Security, JWT
+* **Data Access:** Spring Data JPA / Hibernate
+* **Hosting:** Render (Web Service)
+
+### **Database**
+* **Engine:** PostgreSQL
+* **Provider:** Supabase (with transaction pooling on port 6543)
+
+---
+
+## 🔒 Security Architecture Highlights
+
+This application implements robust, production-grade security measures:
+1. **Cookie-Based JWTs:** Tokens are never stored in `localStorage`. They are delivered via secure, HTTP-only cookies to prevent Cross-Site Scripting (XSS) attacks.
+2. **Cross-Origin Resource Sharing (CORS):** Strictly configured to only accept API requests from verified frontend origins.
+3. **Password Cryptography:** All user passwords are encrypted at rest using BCrypt hashing.
+4. **Environment Isolation:** Database credentials and signing keys are injected exclusively via secure environment variables.
+
+---
+
+## 💻 Local Development Setup
+
+To run this project locally, you will need Java 17+, Node.js, and Yarn installed on your machine.
+
+### 1. Clone the Repository
 ```bash
-git clone https://github.com/SKKammar/InventoryManagement.git
-cd InventoryManagement
+git clone [https://github.com/SKKammar/InventoryManagement.git](https://github.com/SKKammar/InventoryManagement.git)
 
-# 1. Copy .env.example and fill in your Postgres credentials and a JWT secret
-cp .env.example .env
-
-# 2. Export the environment variables (or set them in your IDE run config)
-#    SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/inventory_db
-#    SPRING_DATASOURCE_USERNAME=your_db_username
-#    SPRING_DATASOURCE_PASSWORD=your_db_password
-#    APP_JWT_SECRET=your_jwt_secret_at_least_64_characters_long
-
-# 3. Run
-mvn spring-boot:run
-```
-App starts at `http://localhost:8080/swagger-ui.html`.
-
-## Default Credentials
-
-Seeded automatically on first run when the `users` table is empty:
-
-| Username | Password | Role |
-|---|---|---|
-| `admin` | `admin123` | ADMIN |
-| `user` | `user123` | CUSTOMER |
-
-## API Endpoints
-
-### Authentication (`/api/auth`)
-| Method | Endpoint | Description | Auth |
-|---|---|---|---|
-| POST | `/api/auth/login` | Login — sets JWT cookies | Public |
-| POST | `/api/auth/register` | Register new user (CUSTOMER role) — sets JWT cookies | Public |
-| POST | `/api/auth/logout` | Logout — clears JWT cookies | Public |
-| GET | `/api/auth/me` | Get current authenticated user | Authenticated |
-| POST | `/api/auth/refresh-token` | Refresh access token via refresh cookie | Public |
-| POST | `/api/auth/forgot-password` | Request password reset (logs mock email to console) | Public |
-| POST | `/api/auth/reset-password` | Reset password with token | Public |
-
-### Products (`/api/products`)
-| Method | Endpoint | Auth |
-|---|---|---|
-| GET | `/api/products` | Authenticated |
-| GET | `/api/products/{id}` | Authenticated |
-| POST | `/api/products` | ADMIN only |
-| PUT | `/api/products/{id}` | ADMIN only |
-| DELETE | `/api/products/{id}` | ADMIN only (soft-delete) |
-
-### Orders (`/api/orders`)
-| Method | Endpoint | Auth |
-|---|---|---|
-| GET | `/api/orders` | ADMIN / WAREHOUSE_STAFF |
-| GET | `/api/orders/my` | Authenticated (returns own orders only) |
-| POST | `/api/orders` | Authenticated |
-
-## Project Structure
-```
-src/main/java/com/example/inventory/
-├── config/          # DataSeeder
-├── controller/      # AuthController, ProductController, OrderController
-├── dto/             # Request/Response DTOs
-├── entity/          # JPA Entities (User, Product, Order, OrderItem)
-├── enums/           # RoleType, OrderStatus
-├── exception/       # GlobalExceptionHandler
-├── mapper/          # MapStruct mappers (OrderMapper, ProductMapper)
-├── repository/      # Spring Data JPA Repositories
-├── security/        # SecurityConfig, JwtUtil, JwtAuthenticationFilter, UserDetailsServiceImpl
-└── service/         # OrderService, ProductService
 ```
 
-## Security Notes
+### 2. Configure Backend Environment
 
-### Cookie-Based JWT Authentication
-JWT tokens are stored in **httpOnly cookies**, not in localStorage or headers.
+Navigate to the backend directory and create an `application.properties` or `.env` file with the following variables:
 
-| Property | Value | Notes |
-|----------|-------|-------|
-| `httpOnly` | `true` | Prevents JavaScript access — mitigates XSS token theft |
-| `SameSite` | `Lax` | Browser won't send cookie on cross-origin POST |
-| `Secure` | `true` | Requires HTTPS — tokens won't be sent over plain HTTP |
+```properties
+# Database Configuration
+SPRING_DATASOURCE_URL=jdbc:postgresql://<your-db-host>:6543/postgres?sslmode=verify-full&prepareThreshold=0
+SPRING_DATASOURCE_USERNAME=your_db_username
+SPRING_DATASOURCE_PASSWORD=your_db_password
 
-The JWT filter reads **only** from the `accessToken` cookie. There is no `Authorization: Bearer` header fallback.
+# JWT Security
+APP_JWT_SECRET=YourSuperSecretKeyThatIsAtLeast64CharactersLong1234567890!
+SERVER_PORT=8080
 
-### CSRF Protection
-**CSRF is currently disabled** (`csrf(AbstractHttpConfigurer::disable)` in `SecurityConfig`). This is a known limitation. The `SameSite=Lax` cookie attribute provides partial mitigation against cross-origin POST attacks, but a full CSRF token mechanism is not implemented.
+```
 
-### CORS
-Configured with `allowCredentials: true` and an explicit origin whitelist (`localhost:3000`, `localhost:3001`). Wildcard origins are not allowed.
+*Run the Spring Boot application using Maven or your preferred IDE.*
 
-## Future Work (Not Yet Implemented)
+### 3. Configure Frontend Environment
 
-The following features are **not currently in the codebase** and are flagged here for future consideration:
+Navigate to the frontend directory and create a `.env` file:
 
-- Order status update endpoint (`PUT /api/orders/{id}/status`)
-- Order statistics/analytics endpoint
-- Inventory adjustment history tracking
-- Low-stock alert endpoint
-- Email integration for password reset (currently logs to console)
-- CSRF token protection (defense-in-depth beyond `SameSite=Lax`)
+```env
+VITE_API_BASE_URL=http://localhost:8080/api
 
-## Author
-**Santosh K Kammar**
-- GitHub: [@SKKammar](https://github.com/SKKammar)
+```
+
+### 4. Install and Run Frontend
+
+```bash
+# Install dependencies
+yarn install
+
+# Start the Vite development server
+yarn dev
+
+```
+
+---
+
+## 🤝 Contributing
+
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://www.google.com/search?q=https://github.com/SKKammar/InventoryManagement/issues).
+
+```
+
+```
