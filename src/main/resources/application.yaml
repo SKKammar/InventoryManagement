@@ -6,10 +6,10 @@ spring:
     name: inventory-api
 
   datasource:
-    url: jdbc:postgresql://db.dgufnkbmwaxtjtpdvvcn.supabase.co:5432/postgres
+    url: ${SPRING_DATASOURCE_URL}
     driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: ${SPRING_DATASOURCE_PASSWORD:your_dev_password_here}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
@@ -22,7 +22,7 @@ spring:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:supersecretkeyatleast64characterslongwhichissecureenoughtopasshs5121234567890}
+    secret: ${APP_JWT_SECRET}
     expiration-ms: 900000 # 15 minutes
     refresh-expiration-ms: 604800000 # 7 days
 

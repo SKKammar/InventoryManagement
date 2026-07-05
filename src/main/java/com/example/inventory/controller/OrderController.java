@@ -5,6 +5,7 @@ import com.example.inventory.dto.OrderDTO;
 import com.example.inventory.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +21,14 @@ public class OrderController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','WAREHOUSE_STAFF')")
     public ResponseEntity<List<OrderDTO>> getAllOrders() {
         return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<OrderDTO>> getMyOrders() {
+        return ResponseEntity.ok(orderService.getMyOrders());
     }
 
     @PostMapping

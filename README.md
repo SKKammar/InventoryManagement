@@ -1,12 +1,11 @@
 # Inventory & Order Management System
 
-A production-ready REST API backend for managing inventory and orders, built with Java 17 and Spring Boot 3.2.
+A REST API backend for managing inventory and orders, built with Java 17 and Spring Boot 3.2.
 
 ![Java](https://img.shields.io/badge/Java-17-orange?style=flat-square&logo=java)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.0-brightgreen?style=flat-square&logo=springboot)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue?style=flat-square&logo=postgresql)
 ![JWT](https://img.shields.io/badge/JWT-Auth-red?style=flat-square)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ## Performance
@@ -22,14 +21,12 @@ A production-ready REST API backend for managing inventory and orders, built wit
 
 ## Features
 
-- **JWT Authentication** — Stateless auth with access + refresh tokens
-- **Role-Based Access Control** — ADMIN / CUSTOMER / WAREHOUSE_STAFF
-- **Product Management** — CRUD, category filtering, SKU lookup, soft delete
-- **Order Management** — Full lifecycle: PENDING → CONFIRMED → SHIPPED → DELIVERED
-- **Inventory Control** — Real-time stock updates, movement history, low-stock alerts
+- **JWT Cookie Authentication** — httpOnly cookie-based auth with access + refresh tokens (login, register, logout, session check, forgot-password, reset-password)
+- **Role-Based Access Control** — Three roles: `ADMIN`, `CUSTOMER`, `WAREHOUSE_STAFF`
+- **Product Management** — Full CRUD with soft-delete; writes restricted to ADMIN
+- **Order Management** — Order creation (any authenticated user), all-orders listing (ADMIN / WAREHOUSE_STAFF), own-orders listing (any authenticated user)
 - **Swagger UI** — Interactive API docs at `/swagger-ui.html`
-- **Global Exception Handling** — Consistent JSON error responses
-- **Docker Support** — Runs with a single command
+- **Global Exception Handling** — Consistent JSON error responses via `@RestControllerAdvice`
 
 ## Tech Stack
 
@@ -37,139 +34,121 @@ A production-ready REST API backend for managing inventory and orders, built wit
 |---|---|
 | Language | Java 17 |
 | Framework | Spring Boot 3.2.0 |
-| Database | PostgreSQL 15 |
+| Database | PostgreSQL |
 | ORM | Hibernate / Spring Data JPA |
 | Security | Spring Security 6 + JWT (JJWT 0.12.3) |
-| Documentation | Springdoc OpenAPI 2.1.0 (Swagger) |
-| Build | Maven 3.9+ |
-| Containerization | Docker + Docker Compose |
+| Documentation | Springdoc OpenAPI 2.3.0 (Swagger) |
+| Mapping | MapStruct 1.5.5.Final |
+| Build | Maven |
 
 ## Quick Start
 
-### Option 1 — Docker (Recommended)
-```bash
-git clone https://github.com/SKKammar/inventory.git
-cd inventory
-docker-compose up --build
-```
-App starts at `http://localhost:8080/swagger-ui.html` — no PostgreSQL setup needed.
+### Prerequisites
+- Java 17
+- Maven 3.9+
+- PostgreSQL instance (local or remote, e.g. Supabase)
 
-### Option 2 — Local
+### Setup
 ```bash
-# 1. Update .env with your local or remote PostgreSQL credentials
+git clone https://github.com/SKKammar/InventoryManagement.git
+cd InventoryManagement
 
-# 2. Run
+# 1. Copy .env.example and fill in your Postgres credentials and a JWT secret
+cp .env.example .env
+
+# 2. Export the environment variables (or set them in your IDE run config)
+#    SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/inventory_db
+#    SPRING_DATASOURCE_USERNAME=your_db_username
+#    SPRING_DATASOURCE_PASSWORD=your_db_password
+#    APP_JWT_SECRET=your_jwt_secret_at_least_64_characters_long
+
+# 3. Run
 mvn spring-boot:run
 ```
+App starts at `http://localhost:8080/swagger-ui.html`.
 
 ## Default Credentials
-```
-Username: admin
-Password: Admin@123
-```
+
+Seeded automatically on first run when the `users` table is empty:
+
+| Username | Password | Role |
+|---|---|---|
+| `admin` | `admin123` | ADMIN |
+| `user` | `user123` | CUSTOMER |
 
 ## API Endpoints
 
-### Authentication
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/auth/login` | Login and get JWT token |
-| POST | `/api/auth/register` | Register new user |
-| POST | `/api/auth/refresh-token` | Refresh access token |
-| POST | `/api/auth/logout` | Invalidate refresh token |
+### Authentication (`/api/auth`)
+| Method | Endpoint | Description | Auth |
+|---|---|---|---|
+| POST | `/api/auth/login` | Login — sets JWT cookies | Public |
+| POST | `/api/auth/register` | Register new user (CUSTOMER role) — sets JWT cookies | Public |
+| POST | `/api/auth/logout` | Logout — clears JWT cookies | Public |
+| GET | `/api/auth/me` | Get current authenticated user | Authenticated |
+| POST | `/api/auth/refresh-token` | Refresh access token via refresh cookie | Public |
+| POST | `/api/auth/forgot-password` | Request password reset (logs mock email to console) | Public |
+| POST | `/api/auth/reset-password` | Reset password with token | Public |
 
-### Products
+### Products (`/api/products`)
 | Method | Endpoint | Auth |
 |---|---|---|
 | GET | `/api/products` | Authenticated |
+| GET | `/api/products/{id}` | Authenticated |
 | POST | `/api/products` | ADMIN only |
 | PUT | `/api/products/{id}` | ADMIN only |
-| DELETE | `/api/products/{id}` | ADMIN only |
-| GET | `/api/products/stock/low` | ADMIN / WAREHOUSE |
+| DELETE | `/api/products/{id}` | ADMIN only (soft-delete) |
 
-### Orders
+### Orders (`/api/orders`)
 | Method | Endpoint | Auth |
 |---|---|---|
+| GET | `/api/orders` | ADMIN / WAREHOUSE_STAFF |
+| GET | `/api/orders/my` | Authenticated (returns own orders only) |
 | POST | `/api/orders` | Authenticated |
-| GET | `/api/orders` | ADMIN only |
-| PUT | `/api/orders/{id}/status` | ADMIN / WAREHOUSE |
-| GET | `/api/orders/stats/all` | ADMIN only |
-
-### Inventory
-| Method | Endpoint | Auth |
-|---|---|---|
-| GET | `/api/inventory/stock/{productId}` | ADMIN / WAREHOUSE |
-| GET | `/api/inventory/history/{productId}` | ADMIN / WAREHOUSE |
-| POST | `/api/inventory/adjustment` | ADMIN only |
 
 ## Project Structure
 ```
 src/main/java/com/example/inventory/
-├── config/          # Security, OpenAPI, Exception Handler
-├── controller/      # REST Controllers
+├── config/          # DataSeeder
+├── controller/      # AuthController, ProductController, OrderController
 ├── dto/             # Request/Response DTOs
-├── entity/          # JPA Entities
-├── exception/       # Custom Exceptions
-├── init/            # Data Seeder
+├── entity/          # JPA Entities (User, Product, Order, OrderItem)
+├── enums/           # RoleType, OrderStatus
+├── exception/       # GlobalExceptionHandler
+├── mapper/          # MapStruct mappers (OrderMapper, ProductMapper)
 ├── repository/      # Spring Data JPA Repositories
-├── security/        # JWT Filter, Token Provider
-└── service/         # Business Logic
-```
-
-## Sample Request
-
-### Login
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"Admin@123"}'
-```
-
-### Create Product
-```bash
-curl -X POST http://localhost:8080/api/products \
-  -H "Authorization: Bearer YOUR_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "MacBook Pro",
-    "sku": "MBP-001",
-    "category": "Electronics",
-    "price": 1299.99,
-    "currentStock": 25,
-    "minStockLevel": 5,
-    "unit": "PCS"
-  }'
+├── security/        # SecurityConfig, JwtUtil, JwtAuthenticationFilter, UserDetailsServiceImpl
+└── service/         # OrderService, ProductService
 ```
 
 ## Security Notes
 
-### Authentication Architecture
-JWT tokens are stored in **httpOnly, SameSite=Lax cookies** — not in localStorage.
+### Cookie-Based JWT Authentication
+JWT tokens are stored in **httpOnly cookies**, not in localStorage or headers.
 
-| Property | Value | Why |
-|----------|-------|-----|
-| `httpOnly` | `true` | Prevents JavaScript access → mitigates XSS token theft |
-| `SameSite` | `Lax` | Browser won't send cookie on cross-origin POST → first CSRF defense layer |
-| `Secure` | `true` (prod) | Requires HTTPS → prevents token interception over HTTP |
+| Property | Value | Notes |
+|----------|-------|-------|
+| `httpOnly` | `true` | Prevents JavaScript access — mitigates XSS token theft |
+| `SameSite` | `Lax` | Browser won't send cookie on cross-origin POST |
+| `Secure` | `true` | Requires HTTPS — tokens won't be sent over plain HTTP |
+
+The JWT filter reads **only** from the `accessToken` cookie. There is no `Authorization: Bearer` header fallback.
 
 ### CSRF Protection
-**Strategy: CSRF token validation (defense-in-depth)**
-
-The backend uses Spring Security's `CookieCsrfTokenRepository` which:
-1. Sets a non-httpOnly `XSRF-TOKEN` cookie on every response
-2. The frontend reads this cookie and sends its value as the `X-XSRF-TOKEN` header
-3. Spring validates that the header matches the cookie
-4. Attackers on different origins can't read our cookies (same-origin policy) → can't forge the header
-
-**Why not SameSite=Lax alone?** SameSite=Lax blocks cross-origin form POST but doesn't cover all attack vectors (subdomain attacks, browser quirks). CSRF tokens provide a second independent layer of protection.
-
-**CSRF-exempt endpoints**: `/api/auth/login`, `/api/auth/register` (no session to hijack at login time).
-
-### Bearer Header Fallback
-The JWT filter supports `Authorization: Bearer` headers **only in dev/test profiles** for Postman and Swagger convenience. This is **disabled in production** (`app.auth.allow-bearer-header: false`) to prevent bypassing cookie-based CSRF protections.
+**CSRF is currently disabled** (`csrf(AbstractHttpConfigurer::disable)` in `SecurityConfig`). This is a known limitation. The `SameSite=Lax` cookie attribute provides partial mitigation against cross-origin POST attacks, but a full CSRF token mechanism is not implemented.
 
 ### CORS
-Configured with `allowCredentials: true` and explicit origin whitelist. Wildcard origins are not allowed when credentials are enabled (browser security requirement).
+Configured with `allowCredentials: true` and an explicit origin whitelist (`localhost:3000`, `localhost:3001`). Wildcard origins are not allowed.
+
+## Future Work (Not Yet Implemented)
+
+The following features are **not currently in the codebase** and are flagged here for future consideration:
+
+- Order status update endpoint (`PUT /api/orders/{id}/status`)
+- Order statistics/analytics endpoint
+- Inventory adjustment history tracking
+- Low-stock alert endpoint
+- Email integration for password reset (currently logs to console)
+- CSRF token protection (defense-in-depth beyond `SameSite=Lax`)
 
 ## Author
 **Santosh K Kammar**

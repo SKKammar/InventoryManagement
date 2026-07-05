@@ -39,6 +39,13 @@ public class OrderService {
         return orderMapper.toDtoList(orderRepository.findAll());
     }
 
+    public List<OrderDTO> getMyOrders() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
+        return orderMapper.toDtoList(orderRepository.findByUser(user));
+    }
+
     public OrderDTO createOrder(CreateOrderRequest request) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByUsername(username)

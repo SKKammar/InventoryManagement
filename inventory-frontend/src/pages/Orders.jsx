@@ -2,12 +2,17 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { ShoppingCart } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 export default function Orders() {
+  const { user } = useAuth();
+  const isStaffOrAdmin = user?.role === 'ADMIN' || user?.role === 'WAREHOUSE_STAFF';
+
   const { data: orders = [], isLoading } = useQuery({
-    queryKey: ['orders'],
+    queryKey: ['orders', isStaffOrAdmin],
     queryFn: async () => {
-      const res = await axios.get('/api/orders');
+      const endpoint = isStaffOrAdmin ? '/api/orders' : '/api/orders/my';
+      const res = await axios.get(endpoint);
       return res.data;
     }
   });
@@ -48,10 +53,10 @@ export default function Orders() {
     <div className="space-y-8 crt-effect">
       <div className="border-b-[4px] border-[#39ff14] pb-4 inline-block">
         <h2 className="text-4xl font-bold text-[#ffea00] tracking-widest uppercase">
-          ORDERS
+          {isStaffOrAdmin ? 'ALL ORDERS' : 'MY ORDERS'}
         </h2>
         <p className="text-[#39ff14] mt-2 font-mono uppercase opacity-80 font-bold">
-          &gt; View all order transactions
+          &gt; {isStaffOrAdmin ? 'View all order transactions' : 'View your order history'}
         </p>
       </div>
 
@@ -99,7 +104,9 @@ export default function Orders() {
                       NO ORDERS FOUND
                     </div>
                     <p className="text-[#00ffcc] opacity-70 font-mono text-sm max-w-md text-center">
-                      The transaction ledger is currently empty. Awaiting new customer orders...
+                      {isStaffOrAdmin 
+                        ? 'The transaction ledger is currently empty. Awaiting new customer orders...'
+                        : 'You have not placed any orders yet.'}
                     </p>
                   </div>
                 </td>
