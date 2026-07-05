@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  axios.defaults.baseURL = '';
+  axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
   axios.defaults.withCredentials = true;
 
   // Setup Axios Interceptor for Silent Refresh
