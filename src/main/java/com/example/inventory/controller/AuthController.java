@@ -52,19 +52,17 @@ public class AuthController {
 
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", jwt)
                 .httpOnly(true)
-                .secure(true)
                 .path("/")
                 .maxAge(15 * 60) // 15 mins
-                .sameSite("None")
+                .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
-                .secure(true)
                 .path("/api/auth/refresh-token")
-                .maxAge(7 * 24 * 60 * 60) 
-                .sameSite("None") 
+                .maxAge(7 * 24 * 60 * 60) // 7 days
+                .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
@@ -112,19 +110,17 @@ public class AuthController {
     public ResponseEntity<?> logoutUser(HttpServletResponse response) {
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
-                .secure(true)
                 .path("/")
                 .maxAge(0)
-                .sameSite("None") 
+                .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
-                .secure(true)
                 .path("/api/auth/refresh-token")
                 .maxAge(0)
-                .sameSite("None") 
+                .sameSite("Lax")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
