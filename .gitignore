@@ -24,3 +24,6 @@ logs/
 # Database dumps (since you use Flyway)
 database.sql
 *.sql
+
+# Analysis files
+project_analysis.md

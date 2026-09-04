@@ -5,8 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 import java.util.List;
 
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.Query;
+import java.util.Set;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    Optional<Product> findBySkuAndDeletedFalse(String sku);
     List<Product> findByDeletedFalse();
-    Boolean existsBySku(String sku);
+    
+    @EntityGraph(attributePaths = {"variants", "variants.inventories"})
+    @Query("SELECT p FROM Product p WHERE p.deleted = false")
+    Set<Product> findAllWithVariantsAndInventory();
 }

@@ -31,14 +31,14 @@ public class ProductController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody ProductDTO dto) {
-        return ResponseEntity.ok(productService.createProduct(dto));
+    public ResponseEntity<ProductDTO> createProduct(@Valid @RequestBody com.example.inventory.dto.CreateProductRequest request) {
+        return ResponseEntity.ok(productService.createProduct(request));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO dto) {
-        return ResponseEntity.ok(productService.updateProduct(id, dto));
+    public ResponseEntity<ProductDTO> updateProduct(@PathVariable Long id, @Valid @RequestBody com.example.inventory.dto.UpdateProductRequest request) {
+        return ResponseEntity.ok(productService.updateProduct(id, request));
     }
 
     @DeleteMapping("/{id}")

@@ -36,14 +36,17 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserDetailsServiceImpl userDetailsService;
+    private final com.example.inventory.service.AuditService auditService;
 
     public AuthController(AuthenticationManager authenticationManager, UserRepository userRepository,
-                          PasswordEncoder passwordEncoder, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService) {
+                          PasswordEncoder passwordEncoder, JwtUtil jwtUtil, UserDetailsServiceImpl userDetailsService,
+                          com.example.inventory.service.AuditService auditService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
+        this.auditService = auditService;
     }
 
     private void setAuthCookies(HttpServletResponse response, Authentication authentication) {
@@ -54,29 +57,35 @@ public class AuthController {
                 .httpOnly(true)
                 .path("/")
                 .maxAge(15 * 60) // 15 mins
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
                 .path("/api/auth/refresh-token")
-                .maxAge(7 * 24 * 60 * 60) // 7 days
-                .sameSite("Lax")
+                .maxAge(7 * 24 * 60 * 60) 
+                .sameSite("Strict") 
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest, HttpServletResponse response) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        setAuthCookies(response, authentication);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            setAuthCookies(response, authentication);
 
-        User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
-        return ResponseEntity.ok(new AuthResponse(user.getUsername(), user.getRole()));
+            User user = userRepository.findByUsername(loginRequest.getUsername()).orElseThrow();
+            auditService.logAction(com.example.inventory.enums.AuditAction.LOGIN_SUCCESS, "USER", user.getId().toString(), null, null);
+            return ResponseEntity.ok(new AuthResponse(user.getUsername(), user.getRole()));
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            auditService.logAction(com.example.inventory.enums.AuditAction.LOGIN_FAILURE, "USER", loginRequest.getUsername(), "Failed login attempt", null);
+            throw e;
+        }
     }
 
     @PostMapping("/register")
@@ -96,6 +105,7 @@ public class AuthController {
         user.setRole(RoleType.CUSTOMER);
 
         userRepository.save(user);
+        auditService.logAction(com.example.inventory.enums.AuditAction.USER_REGISTERED, "USER", user.getId().toString(), null, null);
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(signUpRequest.getUsername(), signUpRequest.getPassword()));
@@ -107,12 +117,15 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logoutUser(HttpServletResponse response) {
+    public ResponseEntity<?> logoutUser(HttpServletResponse response, Authentication authentication) {
+        if (authentication != null && authentication.getName() != null) {
+            auditService.logAction(com.example.inventory.enums.AuditAction.LOGOUT, "USER", authentication.getName(), null, null);
+        }
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", "")
                 .httpOnly(true)
                 .path("/")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, accessCookie.toString());
         
@@ -120,7 +133,7 @@ public class AuthController {
                 .httpOnly(true)
                 .path("/api/auth/refresh-token")
                 .maxAge(0)
-                .sameSite("Lax")
+                .sameSite("Strict")
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, refreshCookie.toString());
 
@@ -162,7 +175,7 @@ public class AuthController {
             user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
             userRepository.save(user);
             
-            // TODO: In a real app, send an email via SMTP or Resend here.
+            // In a production environment, send an email via SMTP or an email service (e.g. Resend, SendGrid) here.
             // For demo purposes, we log the token so you can test the UI flow.
             System.out.println("==================================================");
             System.out.println("MOCK EMAIL SENT TO: " + user.getEmail());

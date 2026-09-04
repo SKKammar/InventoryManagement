@@ -19,12 +19,20 @@ public class OrderItem {
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    @JoinColumn(name = "product_variant_id", nullable = false)
+    private ProductVariant productVariant;
 
     @Column(nullable = false)
     private Integer quantity;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal unitPrice;
+
+    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<OrderItemAllocation> allocations = new java.util.ArrayList<>();
+
+    public void addAllocation(OrderItemAllocation allocation) {
+        allocations.add(allocation);
+        allocation.setOrderItem(this);
+    }
 }

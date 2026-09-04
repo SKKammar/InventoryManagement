@@ -15,9 +15,13 @@ public interface OrderMapper {
     @Mapping(source = "user.username", target = "username")
     OrderDTO toDto(Order order);
     
-    @Mapping(source = "product.id", target = "productId")
-    @Mapping(source = "product.name", target = "productName")
+    @Mapping(source = "productVariant.id", target = "productVariantId")
+    @Mapping(source = "productVariant.sku", target = "sku")
     OrderItemDTO toDto(OrderItem orderItem);
 
     List<OrderDTO> toDtoList(List<Order> orders);
+
+    @Mapping(source = "warehouse.id", target = "warehouseId")
+    @Mapping(source = "warehouse.name", target = "warehouseName")
+    com.example.inventory.dto.OrderItemAllocationDTO toDto(com.example.inventory.entity.OrderItemAllocation allocation);
 }

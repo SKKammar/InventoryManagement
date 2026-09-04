@@ -1,119 +1,75 @@
-# 📦 Full-Stack Inventory Management System
+# Inventory & Order Management Platform (Technical Specification)
 
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-F2F4F9?style=for-the-badge&logo=spring-boot)
-![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
-![Render](https://img.shields.io/badge/Render-%46E3B7.svg?style=for-the-badge&logo=render&logoColor=white)
+A highly concurrent, production-grade Spring Boot 3 API for inventory reservation, multi-warehouse allocation, and idempotent order processing.
 
-A secure, high-performance inventory tracking and management system. Built with a decoupled architecture featuring a Spring Boot REST API, a responsive React frontend, and a cloud-native PostgreSQL database via Supabase.
+## 1. System Overview & Domain Boundaries
+This system manages the backend lifecycle of a distributed e-commerce inventory system.
+- **Product Domain**: Manages abstract `Product` entities and tangible `ProductVariant` (SKUs).
+- **Inventory Domain**: Tracks physical `Inventory` mappings (`ProductVariant` + `Warehouse`), resolving concurrent allocations and maintaining an immutable `InventoryTransaction` ledger.
+- **Order Domain**: Handles customer checkouts via an Idempotency-protected API, translating `OrderItems` into physical `InventoryReservations`, and transitioning orders through a strict state machine (`CREATED` -> `CONFIRMED` -> `PROCESSING` -> `COMPLETED`/`CANCELLED`).
 
-## 🚀 Live Demo
+## 2. Technical Stack & Architecture
+- **Framework**: Java 17, Spring Boot 3.2.0, Spring Security, Spring Data JPA (Hibernate).
+- **Architecture**: Modular Monolith. Intentionally avoids distributed systems overhead (Kafka, Redis) by maximizing relational database guarantees.
+- **Database**: PostgreSQL 15.
+- **Migrations**: Flyway (State-based SQL versioning).
+- **Testing**: JUnit 5, MockMvc, and Testcontainers (Dynamic containerized PostgreSQL injection).
 
-**Experience the application live:** [https://inventory-frontend-mdvc.onrender.com](https://inventory-frontend-mdvc.onrender.com)
+## 3. Concurrency & Locking Strategy
+The system handles severe flash-sale contention without connection-pool exhaustion:
+- **Optimistic Locking**: `Inventory` and `Order` entities utilize `@Version` annotations. Concurrent writes (e.g., two threads modifying `quantityReserved`) result in an `ObjectOptimisticLockingFailureException` on `COMMIT` rather than deadlocking the database via `SELECT FOR UPDATE`.
+- **Transaction Boundaries**: Standard `@Transactional` isolation is strictly enforced. Inventory deductions (`InventoryService.adjustStock`) and Ledger appends (`InventoryTransactionRepository.save`) are atomically bound to prevent phantom stock.
 
-> **Test Credentials:**
-> * **Admin:** `admin` / `admin123`
-> * **User:** `user` / `user123`
+## 4. Idempotent Command Processing
+Checkout requests are secured against double-clicks, network drops, and malicious replays:
+- **Idempotency Key**: Clients must provide an `Idempotency-Key` UUID.
+- **Hashing**: The `CreateOrderRequest` payload is canonically hashed (SHA-256).
+- **Persistence & Locking**: Handled via `IdempotencyRecord` table with a unique composite index on `(user_id, operation_type, idempotency_key)`.
+- **Conflict Resolution**: If a concurrent request arrives, a `DataIntegrityViolationException` is caught, and the API returns `409 CONFLICT: PROCESSING`. Re-used keys with altered payloads return `409 CONFLICT: HASH MISMATCH`. Success states immediately return the originally generated `OrderDTO`.
 
----
+## 5. Inventory Correctness & The Ledger
+- **Physical vs Reserved**: The system distinguishes between `quantityOnHand` (physical reality) and `quantityReserved` (financial promises). `availableQuantity = quantityOnHand - quantityReserved`.
+- **Immutable Ledger**: The `inventory_transactions` table acts as the source of truth. The denormalized `quantityOnHand` is simply a cache of `SUM(ledger.quantity_change)`.
+- **Transfers**: `InventoryTransfer` is an explicit domain entity, wrapping a source deduction and a destination addition within a single ACID transaction to prevent stock vanishing.
+- **Database Constraints**: Defense-in-depth is enforced via PostgreSQL `CHECK (quantity_on_hand >= 0)` and `CHECK (quantity_reserved >= 0)` to guarantee invariants even if application logic fails.
 
-## ✨ Key Features
+## 6. Multi-Warehouse Allocation Routing
+When an order is placed, `InventoryReservationService` queries `Inventory` sorted by `Warehouse.priority`. It loops through the inventory, algorithmically fragmenting the request across warehouses (e.g., reserving 6 units from `WH-MAIN` and 4 units from `WH-SECONDARY`), writing explicit `OrderItemAllocation` records mapped to the reservations.
 
-* **Secure Authentication:** Implementation of industry-standard JWT (JSON Web Tokens) with cross-origin `httpOnly`, `Secure`, and `SameSite=None` cookie management.
-* **Role-Based Access Control (RBAC):** Distinct permissions for Admin and Standard User accounts.
-* **Silent Token Refresh:** Automated background token regeneration via Axios interceptors for a seamless user experience.
-* **Inventory Tracking:** Real-time visibility into products, stock levels, and active orders.
-* **Cloud-Native Database:** Optimized for serverless and pooled database connections using Supavisor (SNI enabled).
-* **Responsive UI:** Clean, modern interface built with Tailwind CSS and Vite.
+## 7. State Machine Idempotency
+Order state transitions (`cancelOrder`, `completeOrder`, `processOrder`) are strictly guarded. To support robust external integrations (webhooks, client retry queues), transitions are fully idempotent—attempting to `cancelOrder` on an already `CANCELLED` order safely returns a `200 OK` rather than throwing a `500 IllegalStateException`.
 
----
+## 8. Security & API Protection
+- **Stateless JWT**: Spring Security intercepts requests via a custom `JwtAuthenticationFilter`, parsing HttpOnly cookies or Bearer tokens.
+- **RBAC**: Endpoints are strictly protected using `@PreAuthorize("hasRole('ADMIN')")` and custom data-ownership logic.
+- **Mass Assignment Defense**: The system exclusively uses DTOs (`CreateOrderRequest`, `OrderDTO`) with MapStruct. Entities are never exposed to or hydrated directly from the presentation layer.
 
-## 🛠️ Technology Stack
+## 9. Observability & Auditing
+- **MDC Logging**: All logs include `%X{requestId}` and `%X{userId}` injected via Mapped Diagnostic Context for tracing.
+- **Audit Trails**: Separate from the financial Ledger, an `AuditLog` table tracks operational metadata (e.g., which `Admin` cancelled an order or manually adjusted stock).
+- **Actuator**: `/actuator/health` and `/actuator/metrics` expose system vitals and custom Micrometer metrics (e.g., checkout success/failure rates, optimistic lock contention).
 
-### **Frontend**
-* **Framework:** React.js
-* **Build Tool:** Vite
-* **Styling:** Tailwind CSS
-* **Networking:** Axios
-* **State Management:** React Context API
-* **Hosting:** Render (Static Site)
-
-### **Backend**
-* **Core:** Java 17, Spring Boot 3.2.0
-* **Security:** Spring Security, JWT
-* **Data Access:** Spring Data JPA / Hibernate
-* **Hosting:** Render (Web Service)
-
-### **Database**
-* **Engine:** PostgreSQL
-* **Provider:** Supabase (with transaction pooling on port 6543)
-
----
-
-## 🔒 Security Architecture Highlights
-
-This application implements robust, production-grade security measures:
-1. **Cookie-Based JWTs:** Tokens are never stored in `localStorage`. They are delivered via secure, HTTP-only cookies to prevent Cross-Site Scripting (XSS) attacks.
-2. **Cross-Origin Resource Sharing (CORS):** Strictly configured to only accept API requests from verified frontend origins.
-3. **Password Cryptography:** All user passwords are encrypted at rest using BCrypt hashing.
-4. **Environment Isolation:** Database credentials and signing keys are injected exclusively via secure environment variables.
+## 10. Test Infrastructure
+- **Testcontainers**: The `@SpringBootTest` suite dynamically provisions a real PostgreSQL 15 Docker container via `IntegrationTestBase.java` to ensure constraints and optimistic locking behave accurately.
+- **Load Testing**: Programmatic benchmarking inside `LoadTestScenario.java` uses `ExecutorService` and `CountDownLatch` to simulate 50+ concurrent checkouts, verifying connection pooling and deadlock resiliency.
 
 ---
 
-## 💻 Local Development Setup
+## Running Locally
 
-To run this project locally, you will need Java 17+, Node.js, and Yarn installed on your machine.
-
-### 1. Clone the Repository
-```bash
-git clone [https://github.com/SKKammar/InventoryManagement.git](https://github.com/SKKammar/InventoryManagement.git)
-
-```
-
-### 2. Configure Backend Environment
-
-Navigate to the backend directory and create an `application.properties` or `.env` file with the following variables:
-
-```properties
-# Database Configuration
-SPRING_DATASOURCE_URL=jdbc:postgresql://<your-db-host>:6543/postgres?sslmode=verify-full&prepareThreshold=0
-SPRING_DATASOURCE_USERNAME=your_db_username
-SPRING_DATASOURCE_PASSWORD=your_db_password
-
-# JWT Security
-APP_JWT_SECRET=YourSuperSecretKeyThatIsAtLeast64CharactersLong1234567890!
-SERVER_PORT=8080
-
-```
-
-*Run the Spring Boot application using Maven or your preferred IDE.*
-
-### 3. Configure Frontend Environment
-
-Navigate to the frontend directory and create a `.env` file:
-
-```env
-VITE_API_BASE_URL=http://localhost:8080/api
-
-```
-
-### 4. Install and Run Frontend
+Ensure Docker is installed and JDK 17 is configured.
 
 ```bash
-# Install dependencies
-yarn install
+# Start PostgreSQL via Docker Compose
+docker-compose up -d
 
-# Start the Vite development server
-yarn dev
-
+# Run the application
+./mvnw spring-boot:run
 ```
 
----
+## Running the Test Suite (Testcontainers)
+Ensure the Docker daemon is running locally before executing the suite.
 
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://www.google.com/search?q=https://github.com/SKKammar/InventoryManagement/issues).
-
-```
-
+```bash
+./mvnw clean test
 ```

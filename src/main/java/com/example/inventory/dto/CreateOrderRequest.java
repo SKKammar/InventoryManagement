@@ -10,12 +10,15 @@ import java.util.List;
 public class CreateOrderRequest {
     
     @NotEmpty
+    private String idempotencyKey;
+
+    @NotEmpty
     private List<CreateOrderItemRequest> items;
 
     @Data
     public static class CreateOrderItemRequest {
         @NotNull
-        private Long productId;
+        private Long productVariantId;
 
         @NotNull
         @Min(1)
